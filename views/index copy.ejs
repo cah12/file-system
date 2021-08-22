@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="fileSystemTitle"></title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/css/jquery.treetable.min.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/css/jquery.treetable.theme.default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-treetable/3.2.0/jquery.treetable.min.js"></script>
+    <script>
+        //$("#your_table_id").treetable();
+    </script>
+
+    <style>
+        input:focus {
+            background-color: yellow;
+        }
+
+        .centerText {
+            line-height: 200px;
+            height: 200px;
+            text-align: center;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div style="position:absolute; width:24%; height:98%; top:1%; left:1%; border: solid; border-width: 1px;">
+        <table id="table_id" class="table table-hover">
+            <thead id="myTHead">
+            <tbody>
+                <tr>
+                    <th style="background-color:lightgray;">Folders
+                        <span title="New File" style="float:right"><a href="#" id="addFile"><img
+                                    src="file.png" /></a></span>
+                        <span title="New Folder" style="float:right"><a href="#" id="addFolder"><img
+                                    src="folder.png" /></a></span>
+                        <span title="Delete" style="float:right"><a href="#" id="delete"><img
+                                    src="delete.png" /></a></span>
+                        <span title="Rename" style="float:right"><a href="#" id="rename"><img
+                                    src="rename.png" /></a></span>
+                    </th>
+                </tr>
+
+            </tbody>
+            </thead>
+        </table>
+    </div>
+    <div style="position:absolute;  width:74%; left: 25%; top:1%; height:98%; border: solid; border-width: 1px;">
+        <!--div style="padding-top: 8px;">
+            <div style="background-color:lightgray;padding: 7px;">
+                <h6><span id="fileTextAreaTitle">Untitled</span>
+                    <h6>
+            </div>
+        </div-->
+        <!--form action="/save" method="POST">
+            <label style="width:32%;" for="parent"> Folder <input id="parent" name="parent" type="text" readonly></label>
+            <label style="width:32%;" for="name"> File Name <input id="name" name="name" type="text"></label>
+            <label style="width:20%;" for="saveAsType"> Save as type <input name="saveAsType" style="width:20%;" id="saveAsType" value=".txt"
+                    type="text"></label>
+            <button type="submit">Save</button>
+        </form-->
+        <textarea id="fileTextArea" style="width:100%; resize: none; height:93.5%;">Select a file to preview</textarea>
+    </div>
+</body>
+
+<script>
+    $(document).ready(function () {
+        var name = 'root';
+        var parentName = "";
+        var currentRowSelector = null;
+        var fileData = "Hello World"; //null;
+        //var fileData = "I am here, world"; //null;
+        //var fileData = "World, world"; //null;
+
+        $('body').on("contextmenu", function (e) {
+            e.preventDefault();
+        });
+
+        $("#fileTextArea").addClass("centerText")
+
+        var options = {
+            expandable: true,
+            clickableNodeNames: true
+        };
+
+        function displayName(longName) {
+            var parts = longName.split('@');
+            return parts[parts.length - 1];
+        }
+
+
+
+        function makeRow(rootData) {
+            var row = null;
+            //console.log("nodes", rootData)
+            if (rootData.isFile) {
+                row = $('<tr><td><img src="file.png"/> ' + displayName(rootData.name) + '</td></tr>');
+                row.attr("data-tt-file", 'file');
+            } else {
+                row = $('<tr><td><img src="folder.png"/> ' + displayName(rootData.name) + '</td></tr>');
+                row.attr("data-tt-file", 'folder');
+            }
+            var _id = rootData.name;
+            row.attr("data-tt-id", _id);
+            row.attr("id", _id);
+            //console.log(456, name)
+            if (rootData.parent !== undefined && rootData.parent !== '')
+                row.attr("data-tt-parent-id", rootData.parent);//name is parent
+            if (rootData.name == "root") {
+                currentRowSelector = row;
+            }
+            return row;
+        }
+
+        function addRow(rootData) {
+            $("#table_id").append(makeRow(rootData));
+        }
+
+        var initialized = false;
+        function initTree() {
+            $.ajax({
+                method: "GET",
+                url: "http://localhost:3000" + "/tree",
+                cache: false,
+                success: function (data, status) {
+                    if (initialized) {
+                        $("#table_id").treetable('removeNode', "root")
+                    }
+                    //console.log(data.tree)
+                    for (var i = 0; i < data.tree.length; ++i) {
+                        addRow(data.tree[i]);
+                    }
+                    $("#table_id").treetable(options, true);
+                    $("#table_id").treetable('reveal', name);
+                    initialized = true;
+                    currentRowSelector = null;
+                },
+                error: function (returnval) {
+                    console.log(returnval.responseJSON);
+                },
+            });
+        }
+
+        $.ajax({
+            method: "POST",
+            url: "http://localhost:3000" + "/connect",
+            data: { username: "paul" },
+            cache: false,
+            success: function (data) {
+                //console.log(data)
+                initTree()
+                $("#fileSystemTitle").html(data.fileSystem)
+            },
+            error: function (returnval) {
+                console.log(returnval.responseJSON);
+            },
+        });
+
+
+        function selectRow(row) {
+            if (typeof row == "string")
+                row = $(document.getElementById(row));
+            if (currentRowSelector && currentRowSelector.hasClass("selected"))
+                currentRowSelector.toggleClass("selected");
+            row.toggleClass("selected");
+            var idAttr = row.attr("data-tt-id")
+            if (!idAttr) {
+                //currentRowSelector = null;
+                return false;
+            }
+            //console.log("idAttr", idAttr)
+            currentRowSelector = row;
+            name = idAttr;//long name
+            parentName = row.attr("data-tt-parent-id")
+            //console.log("parentName", parentName)
+            return true;
+        }
+
+        String.prototype.spliceStr = function (idx, rem, str) {
+            return this.slice(0, idx) + str + this.slice(idx + Math.abs(rem));
+        };
+
+
+        function findNode(_data) {
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    method: "POST",
+                    url: "http://localhost:3000" + "/node",
+                    data: JSON.stringify(_data),
+                    contentType: 'application/json; charset=utf-8',
+                    dataType: "json",
+                    success: function (data) {
+                        resolve(data);
+                    },
+                    error: function (returnval) {
+                        console.log("findNode fail")
+                        reject(null);
+                    },
+                });
+            })
+        }
+
+        function renameNode(_data) {
+            var input = $('<input type="text"/>');
+            input.val(displayName(_data.name)); //init text input
+            var td = $(currentRowSelector.children()[0]);
+            var innerTdHtml = td.html();
+            var indexOfDisplayName = innerTdHtml.length - displayName(_data.name).length;
+            const n = innerTdHtml.indexOf(displayName(_data.name))
+            td.html(innerTdHtml.spliceStr(indexOfDisplayName, displayName(_data.name).length, ''));
+            td.append(input);
+            input[0].focus();
+            input.on('keyup', function (e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    input.remove();
+                    td.html(innerTdHtml.spliceStr(indexOfDisplayName, $(this).val().length, $(this).val()));
+                    //name = _data.newName;
+                    initTree();
+                }
+            });
+            input.focusout(function () {
+                if ($(this).val() == displayName(name)) {//no change
+                    input.remove();
+                    td.html(innerTdHtml.spliceStr(indexOfDisplayName, $(this).val().length, $(this).val()));
+                    //name = _data.newName;
+                    initTree();
+                }
+            });
+            //_data.newName = parentName;
+            input.change(async function () {
+                //console.log("parentName", parentName);
+                _data.newName = parentName;
+                _data.newName += '@';
+                _data.newName += $(this).val();
+                //console.log("_data", _data);
+                if (($(this).val().trim() !== '') && ($(this).val() !== displayName(name))) {
+
+                    if (hasFileExtension(_data.name) === hasFileExtension(_data.newName)) {
+                        try {
+                            const node = await findNode({ name: _data.newName });
+                            //console.log("node", node)
+                            if (!node) {
+                                //console.log("_data", _data);
+                                $.ajax({
+                                    method: "POST",
+                                    url: "http://localhost:3000" + "/rename",
+                                    data: JSON.stringify(_data),
+                                    contentType: 'application/json; charset=utf-8',
+                                    dataType: "json",
+                                    success: function (data) {
+                                        //console.log(data)
+                                        input.remove();
+                                        td.html(innerTdHtml.spliceStr(indexOfDisplayName, displayName(_data.newName).length, displayName(_data.newName)));
+                                        name = _data.newName;
+                                        initTree();
+                                    },
+                                    error: function (returnval) {
+                                        console.log(returnval.responseJSON);
+                                        alert(returnval.responseJSON.msg)
+                                    },
+                                });
+                            } else {
+                                var message = "";
+                                if (node.isFile) {
+                                    message = "A file with that name alreday exist."
+                                } else {
+                                    message = "A folder with that name alreday exist."
+                                }
+                                input[0].focus();
+                                alert(message)
+                            }
+                        } catch (err) {
+                            console.log(err)
+                        }
+                    } else {
+                        alert("Invalid file extension")
+                    }
+                } else {
+                    if ($(this).val() !== displayName(name))
+                        alert("Invalid name");
+                    input[0].focus();
+                }
+            })
+        }
+
+        function addFile(_data) {
+            var node = $("#table_id").treetable("node", currentRowSelector.attr('id'));
+            var input = $('<input type="text"/>');
+            var inputRow = makeRow(_data);
+            $("#table_id").treetable('loadBranch', node, inputRow)
+            //console.log(row.children()[0])
+            var td = $(inputRow.children()[0])
+            td.append(input);
+            input[0].focus();
+            input.focusout(function () {
+                var str = $(this).val().trim();
+                if ($(this).val().trim() == '') {
+                    try {
+                        $("#table_id").treetable('removeNode', inputRow.attr('id'));
+                    } catch {
+                        console.log("removeNode fail");
+                    }
+                }
+            });
+            input.change(function () {
+                _data.parent = name; //parent name
+                //console.log("parentName", _data.parent)
+                _data.name = _data.parent + '@' + $(this).val();
+                //console.log("nodeName", _data.name);
+                if ($(this).val().trim() !== '') {
+                    // if (hasFileExtension(_data.name)) {
+                    $.ajax({
+                        method: "POST",
+                        url: "http://localhost:3000" + "/createFile",
+                        data: JSON.stringify(_data),
+                        contentType: 'application/json; charset=utf-8',
+                        dataType: "json",
+                        success: function (data) {
+                            //console.log(_data)
+                            $("#table_id").treetable('removeNode', inputRow.attr('id'));//remove text box
+                            var row = makeRow(_data);
+                            $("#table_id").treetable('loadBranch', node, row);
+                            selectRow(row);
+                            //var n = name.lastIndexOf('@');
+                            //var longName = name.slice(0, n) + name.slice(n).replace('@', " <> ");
+                            // var longName = name.replace(/@/gi, '\\')
+                            // longName = longName.replace('\\', ':\\')
+                            // $("#fileTextAreaTitle").html(longName + ' - ' + "Pad")
+                            //console.log("data", data)
+                            $("#fileTextArea").removeClass("centerText")
+                            $("#fileTextArea").html(_data.data);
+                        },
+                        error: function (returnval) {
+                            console.log(returnval.responseJSON);
+                            alert(returnval.responseJSON.msg)
+                        },
+                    });
+                    /*}  else {
+                        alert("Invalid file extension")
+                    } */
+                }
+            })
+        }
+
+        var addingFolder = false;
+
+        function addFolder(_data) {
+            addingFolder = true;
+            var node = $("#table_id").treetable("node", currentRowSelector.attr('id'));
+            var input = $('<input type="text"/>');
+            var inputRow = makeRow(_data);
+            $("#table_id").treetable('loadBranch', node, inputRow)
+            //console.log(row.children()[0]);
+            var td = $(inputRow.children()[0]);
+            td.append(input);
+            input[0].focus();
+            input.focusout(function () {
+                addingFolder = false;
+                var str = $(this).val().trim();
+                if ($(this).val().trim() == '') {
+                    try {
+                        $("#table_id").treetable('removeNode', inputRow.attr('id'));
+                    } catch {
+                        console.log("removeNode fail");
+                    }
+                }
+            });
+            input.change(function () {
+                addingFolder = false;
+                _data.parent = name; //parent name
+                //console.log("parentName", _data.parent)
+                _data.name = _data.parent + '@' + $(this).val()
+                //console.log("nodeName", _data.name);
+                if ($(this).val().trim() !== '') {
+                    if (currentRowSelector.attr("data-tt-file") !== 'file') {
+                        //console.log("_data", _data);
+                        $.ajax({
+                            method: "POST",
+                            url: "http://localhost:3000" + "/createFile",
+                            data: JSON.stringify(_data),
+                            contentType: 'application/json; charset=utf-8',
+                            dataType: "json",
+                            success: function (data) {
+                                //console.log(_data);
+                                $("#table_id").treetable('removeNode', inputRow.attr('id'));//remove text box
+                                var row = makeRow(_data);
+                                $("#table_id").treetable('loadBranch', node, row);
+                                selectRow(row);
+                                var longName = name.replace(/@/gi, '\\')
+                                longName = longName.replace('\\', ':\\')
+                                $("#parent").val(longName)
+                                $("#addFolder").show();
+                                $("#addFile").show();
+                                $("#delete").show();
+                            },
+                            error: function (returnval) {
+                                console.log(returnval.responseJSON);
+                                alert(returnval.responseJSON.msg);
+                            },
+                        });
+                    } else {
+                        alert("Invalid folder name");
+                    }
+                }
+            })
+        }
+
+        $('#addFolder').click(function (e) {
+            if (!currentRowSelector) {
+                return
+            }
+            if (addingFolder)
+                return;
+            if (currentRowSelector.attr("data-tt-file") == 'file')
+                return;
+            var _data = { "parent": name, "isFile": false, "name": "" };
+            addFolder(_data);
+        })
+
+        $('#addFile').click(function (e) {
+            if (!currentRowSelector) {
+                return
+            }
+            if (currentRowSelector.attr("data-tt-file") == 'file')
+                return;
+            var _data = { "parent": name, "name": "", "isFile": true, data: fileData };
+            addFile(_data);
+        })
+
+        $('#rename').click(function (e) {
+            if (!currentRowSelector) {
+                return
+            }
+            var _data = { "name": name, "newName": "" };
+            renameNode(_data);
+        })
+
+        $('#delete').click(function (e) {
+            if (!currentRowSelector) {
+                return;
+            }
+            if (name == "root") {
+                alert('Cannot remove the "root" folder.')
+                return;
+            }
+            var message = "";
+
+            var modName = name.replace(/@/gi, '\\')
+            modName = modName.replace('\\', ':\\')
+
+            if (currentRowSelector.attr("data-tt-file") == 'file') {
+                message = `Do you want to permanently remove the file "${modName}".`
+            } else {
+                message = `Do you want to permanently remove the folder "${modName}".`
+            }
+            if (!confirm(message)) {
+                return;
+            }
+
+            var node = $("#table_id").treetable("node", currentRowSelector.attr('id'));
+            var parentIdAttr = currentRowSelector.attr("data-tt-parent-id")
+            //console.log(" parentIdAttr", parentIdAttr);
+            var _data = { "parent": parentIdAttr, "name": name };
+            $.ajax({
+                method: "DELETE",
+                url: "http://localhost:3000" + "/remove",
+                data: JSON.stringify(_data),
+                contentType: 'application/json; charset=utf-8',
+                dataType: "json",
+                success: function () {
+                    //console.log(_data);
+                    $("#table_id").treetable('unloadBranch', node);
+                    $("#table_id").treetable('removeNode', currentRowSelector.attr('id'));
+                    $("#fileTextArea").addClass("centerText")
+                    $("#fileTextArea").html("Select a file to preview");
+                   // $("#fileTextAreaTitle").html("Untitled" + ' - ' + "Pad");
+                },
+                error: function (returnval) {
+                    console.log(returnval.responseJSON);
+                    alert(returnval.responseJSON.msg)
+                },
+            });
+        })
+
+        const fileExtensions = ['.txt', '.plt', '.xls', '.csv'];
+
+        function hasFileExtension(name) {
+            var l = name.length;
+            var str = name[l - 4]
+            if (str !== '.')
+                return false;
+            str += name[l - 3];
+            str += name[l - 2];
+            str += name[l - 1];
+            if (fileExtensions.indexOf(str) == -1) {
+                return false;
+            }
+            return true;
+        }
+
+
+
+        function populatePad() {
+            var _data = { "name": name };
+            //console.log(_data)
+            $.ajax({
+                method: "POST",
+                url: "http://localhost:3000" + "/file",
+                data: JSON.stringify(_data),
+                contentType: 'application/json; charset=utf-8',
+                dataType: "json",
+                success: function (data) {
+                    $("#fileTextArea").removeClass("centerText")
+                    $("#fileTextArea").html(data.data);
+                },
+                error: function (returnval) {
+                    console.log(returnval.responseJSON);
+                    alert(returnval.responseJSON.msg)
+                },
+            });
+        }
+
+        // Highlight selected row
+        $("#table_id tbody").on("mousedown", "tr", function () {
+            $(".selected").not(this).removeClass("selected");
+            selectRow($(this));
+            if ($(this).hasClass("selected")) {
+                if ($(this).attr("data-tt-file") == 'file') {//we selected a file
+                    //console.log("populate pad")
+                    populatePad()
+                    // var longName = name.replace(/@/gi, '\\')
+                    // longName = longName.replace('\\', ':\\')
+                    // $("#fileTextAreaTitle").html(longName + ' - ' + "Pad")
+                } else {//we selected a folder
+                    //console.log("clear pad");
+                    $("#fileTextArea").addClass("centerText")
+                    $("#fileTextArea").html("Select a file to preview")
+                   // $("#fileTextAreaTitle").html("Untitled" + ' - ' + "Pad")
+                    // var longName = name.replace(/@/gi, '\\')
+                    // longName = longName.replace('\\', ':\\')
+                    // $("#parent").val(longName)
+                }
+            } else {
+                //console.log("clear pad")
+                //$("#fileTextArea").html("")
+            }
+        });
+
+    });
+
+</script>
+
+
+</html>
