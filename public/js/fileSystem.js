@@ -1057,7 +1057,6 @@ class FileSystemServices {
     }
 
 
-
     const m_fsServerUrl = fsServerUrl;
     var name = "root";
     var parentName = "";
