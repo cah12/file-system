@@ -10,6 +10,7 @@
 ;
 (function ($, window, document, undefined) {
   "use strict";
+  
 
   $.single = (function () {
     var single = $({});
