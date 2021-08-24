@@ -1,3 +1,4 @@
+//Remember to set heroku env. variable, NODE_ENV, to production 
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
   //process.env.FILESYSTEM_DATABASE_URL = process.env.FILESYSTEM_LOCAL_DATABASE_URL;  
