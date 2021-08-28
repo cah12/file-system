@@ -1,4 +1,9 @@
-//Remember to set heroku env. variable, NODE_ENV, to production 
+/*
+This server constructs a mongoDb database and permits whitelisted clients to access it.
+
+*/
+
+//Remember to set heroku env. variables for production.
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
   //process.env.FILESYSTEM_DATABASE_URL = process.env.FILESYSTEM_LOCAL_DATABASE_URL;  
@@ -27,8 +32,10 @@ app.use(cookieParser());
 
 app.use(express.json({limit: "140mb", extended: true }));
 
-const fs = require("./filesystem-mongo");
-const fileSystemRoutes = require("./file-system-routes")(fs);
+//const fs = require("./filesystem-mongo");
+const fs = require("file-system-mongo");
+//const fileSystemRoutes = require("./file-system-routes")(fs);
+const fileSystemRoutes = require("file-system-routes")(fs);
 app.use(fileSystemRoutes); 
 
 app.use(express.static('public'));
