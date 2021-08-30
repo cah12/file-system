@@ -14,8 +14,8 @@
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "file-system-mongo": "^1.0.2",
-    "file-system-routes": "^1.0.1"
+    "file-system-mongo": "^1.0.17",
+    "file-system-routes": "^1.0.8"
   },
   "devDependencies": {
     "dotenv": "^8.2.0",
